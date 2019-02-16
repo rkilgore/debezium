@@ -1007,8 +1007,12 @@ public class RecordsStreamProducerIT extends AbstractRecordsProducerTest {
 
         assertRecordSchemaAndValues(Arrays.asList(
                 new SchemaAndValueField("id", SchemaBuilder.INT32_SCHEMA, 1),
-                new SchemaAndValueField("not_toast", SchemaBuilder.OPTIONAL_INT32_SCHEMA, 20),
+                new SchemaAndValueField("not_toast", SchemaBuilder.OPTIONAL_INT32_SCHEMA, 10),
                 new SchemaAndValueField("text", SchemaBuilder.OPTIONAL_STRING_SCHEMA, toastedValue)
+        ), updatedRecord, Envelope.FieldName.BEFORE);
+        assertRecordSchemaAndValues(Arrays.asList(
+                new SchemaAndValueField("id", SchemaBuilder.INT32_SCHEMA, 1),
+                new SchemaAndValueField("not_toast", SchemaBuilder.OPTIONAL_INT32_SCHEMA, 20)
         ), updatedRecord, Envelope.FieldName.AFTER);
     }
 
