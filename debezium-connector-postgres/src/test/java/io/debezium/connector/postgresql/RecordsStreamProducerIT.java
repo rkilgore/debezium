@@ -972,6 +972,48 @@ public class RecordsStreamProducerIT extends AbstractRecordsProducerTest {
     }
 
     @Test
+    public void shouldReceiveChangesForReplicaIdentityFullTableWithToastedValue() throws Exception{
+        PostgresConnectorConfig config = new PostgresConnectorConfig(TestHelper.defaultConfig()
+                .with(PostgresConnectorConfig.PLUGIN_NAME, PostgresConnectorConfig.LogicalDecoder.WAL2JSON)
+                .build());
+        setupRecordsProducer(config);
+
+        TestHelper.execute(
+                "DROP TABLE IF EXISTS test_table;",
+                "CREATE TABLE test_table (id SERIAL, not_toast int, text TEXT);",
+                "ALTER TABLE test_table REPLICA IDENTITY FULL"
+        );
+
+        consumer = testConsumer(1);
+        recordsProducer.start(consumer, blackHole);
+
+        final String toastedValue = RandomStringUtils.randomAlphanumeric(10000);
+
+        // INSERT
+        String statement = "INSERT INTO test_table (not_toast, text) VALUES (10,'" + toastedValue + "');";
+        assertInsert(
+                statement,
+                Arrays.asList(
+                        new SchemaAndValueField("id", SchemaBuilder.INT32_SCHEMA, 1), // SERIAL is NOT NULL implicitly
+                        new SchemaAndValueField("not_toast", SchemaBuilder.OPTIONAL_INT32_SCHEMA, 10),
+                        new SchemaAndValueField("text", SchemaBuilder.OPTIONAL_STRING_SCHEMA, toastedValue)
+                )
+        );
+
+        // UPDATE
+        consumer.expects(1);
+        executeAndWait("UPDATE test_table set not_toast = 20");
+        SourceRecord updatedRecord = consumer.remove();
+
+        assertRecordSchemaAndValues(Arrays.asList(
+                new SchemaAndValueField("id", SchemaBuilder.INT32_SCHEMA, 1),
+                new SchemaAndValueField("not_toast", SchemaBuilder.OPTIONAL_INT32_SCHEMA, 20),
+                new SchemaAndValueField("text", SchemaBuilder.OPTIONAL_STRING_SCHEMA, toastedValue)
+        ), updatedRecord, Envelope.FieldName.AFTER);
+    }
+
+
+    @Test
     @FixFor("DBZ-842")
     public void shouldNotPropagateUnchangedToastedData() throws Exception {
         PostgresConnectorConfig config = new PostgresConnectorConfig(TestHelper.defaultConfig()
