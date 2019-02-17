@@ -435,7 +435,7 @@ public class RecordsStreamProducer extends RecordsProducer {
         if (refreshSchemaIfChanged && schemaChanged(columns, table, metadataInMessage)) {
             try (final PostgresConnection connection = taskContext.createConnection()) {
                 // Refresh the schema so we get information about primary keys
-                schema().refresh(connection, tableId, taskContext.config().skipRefreshSchemaOnMissingToastableData());
+                schema().refresh(connection, tableId, !taskContext.config().skipRefreshSchemaOnMissingToastableData());
                 // Update the schema with metadata coming from decoder message
                 if (metadataInMessage) {
                     schema().refresh(tableFromFromMessage(columns, schema().tableFor(tableId)));
