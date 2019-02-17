@@ -91,6 +91,7 @@ public class PostgresSchema extends RelationalDatabaseSchema {
         }
         // and then refresh the schemas
         refreshSchemas();
+        tableIds().forEach(tableId -> refreshToastableColumnsMap(connection, tableId));
         return this;
     }
 
